@@ -40,58 +40,27 @@ sensor/washer/set/detail
 0 or 1
 
 */
-
-// MPU6050 Includes
-#include "Wire.h"
-#include "I2Cdev.h"
-#include "MPU6050.h"
-
-// ESP8266 Includes
+#include <Wire.h>
+#include <I2Cdev.h>
+#include <MPU6050.h>
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
+#include "userconfig.h"
 
-// DEFINE NODEMCU PINS
-#define D0 16
-#define D1 5 // I2C Bus SCL (clock)
-#define D2 4 // I2C Bus SDA (data)
-#define D3 0
-#define D4 2 // Same as "LED_BUILTIN", but inverted logic
-#define D5 14 // SPI Bus SCK (clock)
-#define D6 12 // SPI Bus MISO 
-#define D7 13 // SPI Bus MOSI
-#define D8 15 // SPI Bus SS (CS)
-#define D9 3 // RX0 (Serial console)
-#define D10 1 // TX0 (Serial console)
+const char* ssid = wifi_ssid;
+const char* password = wifi_password;
+const char* mqtt_server = mqtt_broker;
+const char* mqtt_user = mqtt_username;
+const char* mqtt_pass = mqtt_password;
 
-// DEFINE GPIO PINS
-#define DRYER_DOOR D7 // number of reed sensor for dryer
-#define WASHER_DOOR D8 // number of reed sensor for dryer
-
-// DEFINE STATES
-#define CLOSED 0  //washer/dryer door closed
-#define OPEN 1 //washer/dryer door open
-#define EMPTY 0 //washer/dryer empty
-#define RUNNING 1 //washer/dryer running
-#define COMPLETE 2 //washer/dryer complete
-#define MOVEMENT_DETECTED 0
-#define MOVEMENT_NOT_DETECTED 1
-
-// ESP8266 WIFI  ----------------------------------------------------------------
-const char* ssid = "Internet";
-const char* password = "xxx";
-
-const char* mqtt_server = "192.168.1.52";
-const char* mqtt_username = "nolan";
-const char* mqtt_password = "xxx";
-const char* mqtt_topic_dryer_detail = "sensor/dryer/detail";
-const char* mqtt_topic_washer_detail = "sensor/washer/detail";
-const char* mqtt_topic_washer = "sensor/washer";
-const char* mqtt_topic_dryer = "sensor/dryer";
+const char* mqtt_topic_dryer_detail = topic1;
+const char* mqtt_topic_dryer = topic2;
+const char* mqtt_topic_washer_detail = topic3;
+const char* mqtt_topic_washer = topic4;
 
 WiFiClient espClient;
 PubSubClient client(espClient);
 // END ESP8266 WIFI  ------------------------------------------------------------
-
 
 // MPU-6050 Accelerometers ------------------------------------------------------
 MPU6050 MPU_DRYER(0x68); //DRYER
@@ -109,8 +78,6 @@ int16_t washer_ax_min = 0, washer_ax_max = 0, washer_ax_range;
 int16_t washer_ay_min = 0, washer_ay_max = 0, washer_ay_range;
 int16_t washer_az_min = 0, washer_az_max = 0, washer_az_range;
 // end MPU-6050-------------------------------------------------------------------
-
-
 
 // accelerometer sensor 1 (Dryer) ===============================================
 int dryer_reading = 0; //reading = 1 mean no noise, 0=noise
@@ -264,8 +231,13 @@ void reconnect() {
   // Loop until we're reconnected
   while (!client.connected()) {
 //    Serial.print("Attempting MQTT connection...");
+
+    // Create a random client ID
+    String clientId = MQTT_Client;
+    clientId += String(random(0xffff), HEX);
+
     // Attempt to connect
-    if (client.connect("ESP8266Client", mqtt_username, mqtt_password)) {
+    if (client.connect(clientId.c_str(), mqtt_user, mqtt_pass)) {
 //      Serial.println("connected");
       client.subscribe("sensor/washer/set/+");
       client.subscribe("sensor/dryer/set/+");
